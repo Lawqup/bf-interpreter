@@ -1,4 +1,7 @@
-use std::{io::Write, str::from_utf8};
+use std::{
+    io::{self, Read, Write},
+    str::from_utf8,
+};
 
 use crate::parser::{Cmd, Op};
 
@@ -35,21 +38,14 @@ impl Interpreter {
 
                     let output: Vec<_> = (0..cmd.operand).map(|_| *cell).collect();
                     print!("{}", from_utf8(&output).expect("Is valid ascii"));
-                    std::io::stdout()
-                        .flush()
-                        .expect("Could not flush to stdout");
+                    io::stdout().flush().expect("Could not flush to stdout");
                 }
                 Op::In => {
-                    let mut buf = String::new();
-                    std::io::stdin()
-                        .read_line(&mut buf)
-                        .expect("Stdin should work lmao");
-
-                    buf.pop(); // Ignore newline
+                    let mut buf = vec![0; cmd.operand];
+                    let res = io::stdin().read_exact(&mut buf);
 
                     // Only the last byte stays
-                    let last_char = buf.pop().map(|c| c as u32).unwrap_or(0);
-                    *cell = last_char as u8;
+                    *cell = res.map(|_| buf[cmd.operand - 1]).unwrap_or(0);
                 }
                 Op::JmpZero => {
                     if *cell == 0 {
